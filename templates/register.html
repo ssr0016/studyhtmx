@@ -1,0 +1,42 @@
+{{define "register"}}
+
+{{template "authHeader"}}
+<!-- Registration Form -->
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-6 offset-md-3">
+            <h2>Register</h2>
+            <form>
+                <div id="errors"></div>
+                 <div class="mb-3">
+                    <label for="fullName" class="form-label">Full Name</label>
+                    <input type="text" name="name" class="form-control" id="fullName" placeholder="Enter your full name">
+                 </div>
+                 <div class="mb-3">
+                    <label for="email" class="form-label">Email address</label>
+                    <input type="email" name="email" class="form-control" id="email" placeholder="Enter your email">
+                 </div>
+                 <div class="mb-3">
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password" name="password" class="form-control" id="password" placeholder="Enter your password">
+                 </div>
+                 <div class="mb-3">
+                    <label for="category" class="form-label">Category</label>
+                    <select class="form-select" name="category" id="category">
+                        <option value="1">Student</option>
+                        <option value="2">Instructor</option>
+                    </select>
+                 </div>
+                 <button hx-post="/register"
+                         hx-target="#errors" 
+                         type="submit"
+                         class="btn btn-primary">
+                         Register
+                </button>
+
+                        
+            </form>
+        </div>
+    </div>
+</div>
+{{end}}
