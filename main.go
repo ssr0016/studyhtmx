@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"html/template"
 	"htmx/pkg/handlers"
 	"log"
@@ -16,14 +15,11 @@ import (
 
 var tmpl *template.Template
 var db *sql.DB
+
 var Store = sessions.NewCookieStore([]byte("usermanagementsecret"))
 
 func initTemplate() {
-	var err error
-	tmpl, err = template.ParseGlob("templates/*.html")
-	if err != nil {
-		log.Fatalf("Failed to parse templates: %v", err)
-	}
+	tmpl, _ = template.ParseGlob("templates/*.html")
 
 	// Set up sessions
 	Store.Options = &sessions.Options{
@@ -49,14 +45,12 @@ func initDB() {
 	if err != nil {
 		log.Fatalf("Failed to ping database: %v", err)
 	}
-
-	fmt.Println("Successfully connected to PostgreSQL!")
 }
 
 func main() {
 	gRouter := mux.NewRouter()
 
-	// Initialize templates
+	// Initialize the template
 	initTemplate()
 
 	// Initialize the database
@@ -64,12 +58,7 @@ func main() {
 	defer db.Close()
 
 	// Routes
-	gRouter.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		err := tmpl.ExecuteTemplate(w, "home.html", nil)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-	})
+	gRouter.HandleFunc("/", handlers.Homepage(db, tmpl, Store)).Methods("GET")
 
 	gRouter.HandleFunc("/register", handlers.RegisterPage(db, tmpl)).Methods("GET")
 

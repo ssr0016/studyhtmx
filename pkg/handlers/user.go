@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"htmx/pkg/models"
 	"htmx/pkg/repository"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -147,37 +148,48 @@ func LoginHandler(db *sql.DB, tmpl *template.Template, store *sessions.CookieSto
 	}
 }
 
-func CheckLoggedIn(w http.ResponseWriter, r *http.Request, store *sessions.CookieStore, db *sql.DB) (models.User, string) {
+func Homepage(db *sql.DB, tmpl *template.Template, store *sessions.CookieStore) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user, err := CheckLoggedIn(w, r, store, db)
+		if err != nil {
+			return // Error already handled in `CheckLoggedIn`
+		}
+
+		if err := tmpl.ExecuteTemplate(w, "home.html", user); err != nil {
+			log.Printf("Template execution error: %v", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
+	}
+}
+
+func CheckLoggedIn(w http.ResponseWriter, r *http.Request, store *sessions.CookieStore, db *sql.DB) (models.User, error) {
 	session, err := store.Get(r, "logged-in-user")
 	if err != nil {
+		log.Println("Session retrieval error:", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return models.User{}, ""
+		return models.User{}, err
 	}
 
-	// Check if the user_id is present in the session
 	userID, ok := session.Values["user_id"]
 	if !ok {
-		fmt.Println("Redirecting to /login")
-		http.Redirect(w, r, "/login", http.StatusSeeOther) // 303 required for the redirect to happen
-		return models.User{}, ""
+		log.Println("User ID not found in session, redirecting to login")
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return models.User{}, fmt.Errorf("user not logged in")
 	}
 
-	// Fetch user details from the database
-	user, err := repository.GetUserById(db, userID.(string)) // Ensure that user ID handling appropriate for your ID data type
+	user, err := repository.GetUserById(db, userID.(string))
 	if err != nil {
 		if err == sql.ErrNoRows {
-			// No user found, possibly handle by clearing the session or redirecting to login
-			session.Options.MaxAge = -1 // Clear the session
+			session.Options.MaxAge = -1 // Clear session
 			session.Save(r, w)
-
-			fmt.Println("Redirecting to /login")
+			log.Println("No user found, redirecting to login")
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
-
-			return models.User{}, ""
+			return models.User{}, fmt.Errorf("user not found")
 		}
+		log.Println("Database error:", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return models.User{}, ""
+		return models.User{}, err
 	}
 
-	return user, userID.(string)
+	return user, nil
 }

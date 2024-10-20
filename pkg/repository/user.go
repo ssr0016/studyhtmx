@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"errors"
 	"htmx/pkg/models"
 
 	"github.com/google/uuid"
@@ -56,41 +57,29 @@ func GetAllUsers(db *sql.DB) ([]models.User, error) {
 	return users, nil
 }
 
-func GetUserById(db *sql.DB, id string) (models.User, error) {
+func GetUserById(db *sql.DB, userID string) (models.User, error) {
 	var user models.User
 
-	err := db.QueryRow(
-		`SELECT
-		 	id,
-			email,
-			password,
+	query := `
+		SELECT
+	 		id,
 			name,
-			category,
-			dob,
+			email,
+			avatar,
 			bio,
-			avatar
-		FROM users
+			category,
+			dob 
+		FROM
+		 	users
 		WHERE
-			id = ?	
-		`,
-		id,
-	).Scan(
-		&user.Id,
-		&user.Email,
-		&user.Password,
-		&user.Name,
-		&user.Category,
-		&user.DOB,
-		&user.Bio,
-		&user.Avatar,
-	)
-
+		 	id = $1`
+	err := db.QueryRow(query, userID).Scan(&user.Id, &user.Name, &user.Email, &user.Avatar, &user.Bio, &user.Category, &user.DOB)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return user, sql.ErrNoRows
+		}
 		return user, err
 	}
-
-	// Format the date using a friendly format
-	user.DOBFormatted = user.DOB.Format("2006-01-02")
 
 	return user, nil
 }
