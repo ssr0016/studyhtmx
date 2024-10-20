@@ -98,9 +98,10 @@ func GetUserById(db *sql.DB, id string) (models.User, error) {
 func GetUserByEmail(db *sql.DB, email string) (models.User, error) {
 	var user models.User
 
-	err := db.QueryRow(
-		`SELECT
-		 	id,
+	// Use PostgreSQL-style placeholder ($1)
+	err := db.QueryRow(`
+		SELECT
+			id,
 			email,
 			password,
 			name,
@@ -109,11 +110,8 @@ func GetUserByEmail(db *sql.DB, email string) (models.User, error) {
 			bio,
 			avatar
 		FROM users
-		WHERE
-			email = ?	
-		`,
-		email,
-	).Scan(
+		WHERE email = $1
+	`, email).Scan(
 		&user.Id,
 		&user.Email,
 		&user.Password,
@@ -124,29 +122,40 @@ func GetUserByEmail(db *sql.DB, email string) (models.User, error) {
 		&user.Avatar,
 	)
 
-	return user, err
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// Return a more specific error if no user is found
+			return user, nil
+		}
+		return user, err
+	}
+
+	return user, nil
 }
 
 func CreateUser(db *sql.DB, user models.User) error {
+	// Generate a new UUID for the user
 	id, err := uuid.NewUUID()
 	if err != nil {
 		return err
 	}
 
-	// Convert id to string and set it on the user
+	// Set the generated ID on the user object
 	user.Id = id.String()
 
+	// Use PostgreSQL-style placeholders ($1, $2, ...)
 	stmt, err := db.Prepare(`
 		INSERT INTO users
 		(id, email, password, name, category, dob, bio, avatar)
-		ValUES
-		(?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES
+		($1, $2, $3, $4, $5, $6, $7, $8)
 	`)
-
 	if err != nil {
 		return err
 	}
+	defer stmt.Close() // Ensure the statement is closed properly
 
+	// Execute the statement with user data
 	_, err = stmt.Exec(
 		user.Id,
 		user.Email,
