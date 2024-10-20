@@ -81,6 +81,8 @@ func GetUserById(db *sql.DB, userID string) (models.User, error) {
 		return user, err
 	}
 
+	user.DOBFormatted = user.DOB.Format("2006-01-02")
+
 	return user, nil
 }
 
