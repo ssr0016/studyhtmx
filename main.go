@@ -80,6 +80,8 @@ func main() {
 
 	gRouter.HandleFunc("/upload-avatar", handlers.UploadAvatarHandler(db, tmpl, Store)).Methods("POST")
 
+	gRouter.HandleFunc("/logout", handlers.LogoutHandler(Store)).Methods("GET")
+
 	// Start server
 	http.ListenAndServe(":4000", gRouter)
 }
