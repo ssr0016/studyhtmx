@@ -169,41 +169,45 @@ func UpdateUser(db *sql.DB, id string, user models.User) error {
 	query := `
 		UPDATE users
 		SET
-			email = $1,
-			name = $2,
-			category = $3,
-			dob = $4,
-			bio = $5
+			name = $1,
+			category = $2,
+			dob = $3,
+			bio = $4
 		WHERE
-			id = $6
+			id = $5
 	`
-
 	_, err := db.Exec(
 		query,
-		user.Email,    // $1
-		user.Name,     // $2
-		user.Category, // $3
-		user.DOB,      // $4
-		user.Bio,      // $5
-		id,            // $6
+		user.Name,
+		user.Category,
+		user.DOB,
+		user.Bio,
+		id,
 	)
 
 	return err
 }
 
-func UpdateUserAvatar(db *sql.DB, userID, filePath string) error {
+func UpdateUserAvatar(db *sql.DB, userID, filename string) error {
+	query := `
+		UPDATE users
+		SET
+			avatar = $1
+		WHERE
+			id = $2
+	`
+
 	_, err := db.Exec(
-		`UPDATE users
-		 SET
-		 	avatar = ?
-		 WHERE
-		 	id = ?
-		`,
-		filePath,
+		query,
+		filename,
 		userID,
 	)
 
-	return err
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func DeleteUser(db *sql.DB, id string) error {

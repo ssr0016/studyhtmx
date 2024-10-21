@@ -57,6 +57,10 @@ func main() {
 	initDB()
 	defer db.Close()
 
+	//File server
+	fileServer := http.FileServer(http.Dir("./uploads"))
+	gRouter.PathPrefix("/uploads/").Handler(http.StripPrefix("/uploads/", fileServer))
+
 	// Routes
 	gRouter.HandleFunc("/", handlers.Homepage(db, tmpl, Store)).Methods("GET")
 
@@ -71,6 +75,10 @@ func main() {
 	gRouter.HandleFunc("/edit", handlers.Editpage(db, tmpl, Store)).Methods("GET")
 
 	gRouter.HandleFunc("/edit", handlers.UpdateProfileHandler(db, tmpl, Store)).Methods("POST")
+
+	gRouter.HandleFunc("/upload-avatar", handlers.AvatarPage(db, tmpl, Store)).Methods("GET")
+
+	gRouter.HandleFunc("/upload-avatar", handlers.UploadAvatarHandler(db, tmpl, Store)).Methods("POST")
 
 	// Start server
 	http.ListenAndServe(":4000", gRouter)
