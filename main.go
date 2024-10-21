@@ -68,6 +68,10 @@ func main() {
 
 	gRouter.HandleFunc("/login", handlers.LoginHandler(db, tmpl, Store)).Methods("POST")
 
+	gRouter.HandleFunc("/edit", handlers.Editpage(db, tmpl, Store)).Methods("GET")
+
+	gRouter.HandleFunc("/edit", handlers.UpdateProfileHandler(db, tmpl, Store)).Methods("POST")
+
 	// Start server
 	http.ListenAndServe(":4000", gRouter)
 }

@@ -162,6 +162,88 @@ func Homepage(db *sql.DB, tmpl *template.Template, store *sessions.CookieStore) 
 	}
 }
 
+func Editpage(db *sql.DB, tmpl *template.Template, store *sessions.CookieStore) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user, err := CheckLoggedIn(w, r, store, db)
+		if err != nil {
+			return // Error already handled in `CheckLoggedIn`
+		}
+
+		if err := tmpl.ExecuteTemplate(w, "editProfile", user); err != nil {
+			log.Printf("Template execution error: %v", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
+
+	}
+}
+
+func UpdateProfileHandler(db *sql.DB, tmpl *template.Template, store *sessions.CookieStore) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Retrieve user from session
+		currentUserProfile, userIDErr := CheckLoggedIn(w, r, store, db)
+		if userIDErr != nil {
+			http.Error(w, "User not logged in", http.StatusUnauthorized)
+			return
+		}
+
+		// Ensure userID is the correct type (string)
+		userID := currentUserProfile.Id // Assuming `Id` is of type string in your user model
+
+		// Parse the form
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, "Failed to parse form", http.StatusInternalServerError)
+			return
+		}
+
+		var errorMessages []string
+
+		// Collect and validate form data
+		name := r.FormValue("name")
+		bio := r.FormValue("bio")
+		dobStr := r.FormValue("dob")
+
+		if name == "" {
+			errorMessages = append(errorMessages, "Name is required")
+		}
+
+		if dobStr == "" {
+			errorMessages = append(errorMessages, "Date of Birth is required")
+		}
+
+		dob, err := time.Parse("2006-01-02", dobStr)
+		if err != nil {
+			errorMessages = append(errorMessages, "Invalid date format")
+		}
+
+		// Handle validation errors
+		if len(errorMessages) > 0 {
+			tmpl.ExecuteTemplate(w, "autherrors", errorMessages)
+			return
+		}
+
+		// Create user struct
+		user := models.User{
+			Id:     userID, // Ensure correct assignment
+			Name:   name,
+			DOB:    dob,
+			Bio:    bio,
+			Avatar: currentUserProfile.Avatar,
+		}
+
+		// Call the repository function to update the user
+		if err := repository.UpdateUser(db, userID, user); err != nil {
+			errorMessages = append(errorMessages, "Failed to update user")
+			tmpl.ExecuteTemplate(w, "autherrors", errorMessages)
+			log.Fatal(err) // Consider logging instead of using log.Fatal in production
+			return
+		}
+
+		// Redirect or return success
+		w.Header().Set("HX-Location", "/")
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
 func CheckLoggedIn(w http.ResponseWriter, r *http.Request, store *sessions.CookieStore, db *sql.DB) (models.User, error) {
 	session, err := store.Get(r, "logged-in-user")
 	if err != nil {

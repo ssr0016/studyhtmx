@@ -165,22 +165,27 @@ func CreateUser(db *sql.DB, user models.User) error {
 	return nil
 }
 
-func UpdateUser(db *sql.DB, user models.User) error {
+func UpdateUser(db *sql.DB, id string, user models.User) error {
+	query := `
+		UPDATE users
+		SET
+			email = $1,
+			name = $2,
+			category = $3,
+			dob = $4,
+			bio = $5
+		WHERE
+			id = $6
+	`
+
 	_, err := db.Exec(
-		`UPDATE users
-		 SET
-		 	name = ?,
-		 	category = ?,
-		 	dob = ?,
-		 	bio = ?
-		 WHERE
-		 	id = ?
-		`,
-		user.Name,
-		user.Category,
-		user.DOB,
-		user.Bio,
-		user.Id,
+		query,
+		user.Email,    // $1
+		user.Name,     // $2
+		user.Category, // $3
+		user.DOB,      // $4
+		user.Bio,      // $5
+		id,            // $6
 	)
 
 	return err
